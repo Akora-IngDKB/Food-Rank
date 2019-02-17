@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Food Order</string>
+
+    <string-array name="search_query_suggestions">
+        <item>Burger</item>
+        <item>Cheese Sandwich</item>
+        <item>Chicken Burger</item>
+        <item>Chicken Sandwich</item>
+        <item>Chicken Sausage Pizza</item>
+        <item>Royal Apple</item>
+    </string-array>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="action_add_favourite">Add Favourite</string>
+    <string name="action_rate_item">Rate Item</string>
+    <string name="sample_detail">This text view will hold the details of the food. \nThis will include the ingredients, and many other stuff.</string>
+    <string name="web_client_id">407761591956-4q1688p0njmqk5snkagjtsq2n4glv33p.apps.googleusercontent.com</string>
+    <string name="pref_file_name">PREF_FILE</string>
+    <string name="user_signed_out">User_Signed_Out</string>
+    <string name="bottom_nav_cart">Cart</string>
+</resources>
