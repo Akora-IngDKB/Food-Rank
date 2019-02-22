@@ -28,6 +28,7 @@ class BottomSheetFragment : BottomSheetDialogFragment(){
         ratingBar = view.findViewById(R.id.product_rating)
         cartButton = view.findViewById(R.id.btn_add_to_cart)
 
+        // Set on click listener for the "Add to Cart" button
         cartButton.setOnClickListener {
             ++FoodAdapter.count
             listener?.onAddToCartBtnClick()
@@ -40,7 +41,7 @@ class BottomSheetFragment : BottomSheetDialogFragment(){
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // Get the current object (which has been clicked)
-        val obj = MainActivity.currentItem
+        val obj = MainActivity.currentFoodItem
         // Configure the cedi symbol
         val cedi = 0xA2
         val price = "GH" + Character.toString(cedi.toChar())
@@ -53,6 +54,7 @@ class BottomSheetFragment : BottomSheetDialogFragment(){
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
+        // Ensure that the host activity implements the onclick listener
         listener = context as? OnAddToCartBtnClickListener
         if (listener == null) {
             throw ClassCastException("$context must implement OnArticleSelectedListener")
@@ -60,6 +62,7 @@ class BottomSheetFragment : BottomSheetDialogFragment(){
 
     }
 
+    // Set the theme (style resource) for the bottom sheet dialog
     override fun getTheme(): Int {
         return R.style.BottomSheetDialogTheme
     }

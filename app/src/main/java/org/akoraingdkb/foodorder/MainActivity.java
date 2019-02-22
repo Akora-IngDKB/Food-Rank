@@ -30,9 +30,16 @@ import com.android.volley.toolbox.HurlStack;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.aurelhubert.ahbottomnavigation.AHBottomNavigation;
 import com.aurelhubert.ahbottomnavigation.AHBottomNavigationItem;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.miguelcatalan.materialsearchview.MaterialSearchView;
 
 import org.json.JSONArray;
@@ -68,23 +75,23 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
     private List<FoodItem> mFoodList;
     private FoodAdapter mFoodAdapter;
     private BottomSheetFragment bottomSheetFragment;
-    public static FoodItem currentItem;
+    public static FoodItem currentFoodItem;
     private String[] searchSuggestions = new String[10];
 
-    private FirebaseUser currentUser;
+    private FirebaseUser mCurrentUser;
     private SharedPreferences mSharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Create an instance of the FireBase User
-        currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        mCurrentUser = FirebaseAuth.getInstance().getCurrentUser();
         setContentView(R.layout.activity_main);
 
         mSharedPreferences = getSharedPreferences(getString(R.string.pref_file_name), Context.MODE_PRIVATE);
 
         // Check if the user is logged in and fetch user info
-        if (currentUser == null) {
+        if (mCurrentUser == null) {
             storeSignOut();
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
             MainActivity.this.finish();
@@ -139,6 +146,8 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
 
         bottomSheetFragment = new BottomSheetFragment();
 
+        getCartItemCount();
+
     }
 
     private void configureBottomNavigation() {
@@ -175,9 +184,9 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
             mNavProfileImg.setImageDrawable(textDrawable);
 
             // Change the user name to the signed in user display name
-            mNavUsername.setText(currentUser.getDisplayName());
+            mNavUsername.setText(mCurrentUser.getDisplayName());
             // Change the user email to the signed in email
-            mNavUserEmail.setText(currentUser.getEmail());
+            mNavUserEmail.setText(mCurrentUser.getEmail());
         }
     }
 
@@ -235,7 +244,7 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
 
                 if (menuItem.getItemId() == R.id.nav_sign_out) {
                     // Check if user is already signed in
-                    if (currentUser != null) {
+                    if (mCurrentUser != null) {
                         // Sign out the user
                         FirebaseAuth auth = FirebaseAuth.getInstance();
                         auth.signOut();
@@ -283,6 +292,7 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
         });
     }
 
+    // Reads the food items from the JSON file
     private void prepareFoodList() {
         mFoodList = new ArrayList<>();
         String jsonUrl = "https://jsonblob.com/api/jsonBlob/a90254ad-3670-11e9-9056-e12fdc2cad95";
@@ -345,15 +355,70 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
         return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 5, r.getDisplayMetrics()));
     }
 
+    // Hides the soft input touch when called
     private void hideKeyboard() {
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(mDrawerLayout.getWindowToken(), 0);
     }
 
+    // This method is called when the user signs out from the nav drawer
     private void storeSignOut() {
         SharedPreferences.Editor editor = mSharedPreferences.edit();
         editor.putBoolean(getString(R.string.user_signed_out), true);
         editor.apply();
+    }
+
+    // Save the number of items in cart in the SP API
+    private void storeCartCount() {
+        SharedPreferences.Editor editor = mSharedPreferences.edit();
+        editor.putInt("cart_count", FoodAdapter.count);
+        editor.apply();
+    }
+
+    // Read the number of items in cart stored in the SP API
+    private int readCartCount() {
+        return mSharedPreferences.getInt("cart_count", 0);
+    }
+
+    // Writes the number of items in the cart to the user's database
+    private void putCartItemCount() {
+        // Get a reference to the database node to read cart item count
+        DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
+        // Write the value
+        mDatabase.child(mCurrentUser.getUid()).child("cart_count")
+                .setValue(readCartCount())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        getCartItemCount(); // Call method to update the bottom nav
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(MainActivity.this, "Failed to update cart count", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    // Reads the number of items in the cart from the user's database
+    private void getCartItemCount() {
+        // Get a reference to the database node to read cart item count
+        DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
+        // Read the value
+        mDatabase.child(mCurrentUser.getUid()).child("cart_count").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                Integer count = dataSnapshot.getValue(Integer.class);
+                if (count != null && count > 0)
+                    setCartNotification(count); // Set item count to bottom nav
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Toast.makeText(MainActivity.this, "Operation cancelled: "+databaseError.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -417,13 +482,28 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
     @Override
     public void cardClicked(View view, int position) {
         // Handle card clicked events over here
-        currentItem = mFoodList.get(position);
+        currentFoodItem = mFoodList.get(position);
         bottomSheetFragment.show(getSupportFragmentManager(), bottomSheetFragment.getTag());
     }
 
     @Override
     public void onAddToCartBtnClick() {
-        setCartNotification(FoodAdapter.count);
-        Toast.makeText(this, currentItem.getName() + " added to Cart", Toast.LENGTH_SHORT).show();
+        DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
+        mDatabase.child(mCurrentUser.getUid())
+                .child(currentFoodItem.getName())
+                .setValue(currentFoodItem)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        storeCartCount();   // Store cart item count in SP API
+                        putCartItemCount(); // Write stored value to the database
+                        Toast.makeText(MainActivity.this, currentFoodItem.getName() + " added to Cart", Toast.LENGTH_SHORT).show();
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(MainActivity.this, "" + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 }
