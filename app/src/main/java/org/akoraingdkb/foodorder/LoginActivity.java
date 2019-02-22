@@ -48,6 +48,7 @@ public class LoginActivity extends AppCompatActivity {
             LoginActivity.this.finish();
         }
 
+        // Get the last signed out method
         SharedPreferences mSharedPreferences = getSharedPreferences(getString(R.string.pref_file_name), Context.MODE_PRIVATE);
         boolean fromMain = mSharedPreferences.getBoolean(getString(R.string.user_signed_out), false);
 
@@ -65,13 +66,17 @@ public class LoginActivity extends AppCompatActivity {
         // Build a GoogleSignInClient with the options specified by gso.
         final GoogleSignInClient mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
+        // Check if the user last signed out through the nav drawer
         if (fromMain) {
+            // If yes, show the Sign In Button
             signInButton.setVisibility(View.VISIBLE);
         } else {
+            // If no, call the Google Sign In Client for automatic login
             Intent signInIntent = mGoogleSignInClient.getSignInIntent();
             startActivityForResult(signInIntent, RC_SIGN_IN);
         }
 
+        // Set the on click listener for the Google Sign In Button
         signInButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -103,6 +108,7 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    // Sign the user in with Firebase after successful Google Sign In
     private void firebaseAuthWithGoogle(GoogleSignInAccount acct) {
         Log.d("FB_Google", "firebaseAuthWithGoogle:" + acct.getId());
 
