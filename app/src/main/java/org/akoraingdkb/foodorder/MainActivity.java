@@ -6,20 +6,6 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.DefaultItemAnimator;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.aurelhubert.ahbottomnavigation.AHBottomNavigation;
-import com.aurelhubert.ahbottomnavigation.AHBottomNavigationItem;
-import com.google.android.material.navigation.NavigationView;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
@@ -42,17 +28,11 @@ import com.android.volley.toolbox.BasicNetwork;
 import com.android.volley.toolbox.DiskBasedCache;
 import com.android.volley.toolbox.HurlStack;
 import com.android.volley.toolbox.JsonArrayRequest;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
+import com.aurelhubert.ahbottomnavigation.AHBottomNavigation;
+import com.aurelhubert.ahbottomnavigation.AHBottomNavigationItem;
+import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-import com.google.gson.JsonObject;
 import com.miguelcatalan.materialsearchview.MaterialSearchView;
 
 import org.json.JSONArray;
@@ -61,6 +41,17 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import static com.miguelcatalan.materialsearchview.MaterialSearchView.REQUEST_VOICE;
 
@@ -78,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
     private FoodAdapter mFoodAdapter;
     private BottomSheetFragment bottomSheetFragment;
     public static FoodItem currentItem;
-    private String[] searchSuggestions = null;
+    private String[] searchSuggestions = new String[10];
 
     private FirebaseUser currentUser;
     private SharedPreferences mSharedPreferences;
@@ -164,14 +155,14 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
         bottomNavigation.setOnTabSelectedListener(new AHBottomNavigation.OnTabSelectedListener() {
             @Override
             public boolean onTabSelected(int position, boolean wasSelected) {
-                Toast.makeText(MainActivity.this, FoodAdapter.count+" items in cart", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, FoodAdapter.count + " items in cart", Toast.LENGTH_SHORT).show();
                 return true;
             }
         });
     }
 
     void setCartNotification(int num) {
-        bottomNavigation.setNotification(""+num, 0);
+        bottomNavigation.setNotification("" + num, 0);
     }
 
     private void updateUserInfoInNavHeader() {
@@ -294,7 +285,7 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
 
     private void prepareFoodList() {
         mFoodList = new ArrayList<>();
-        String jsonUrl = "https://firebasestorage.googleapis.com/v0/b/foodorder-378a7.appspot.com/o/food_items.json?alt=media&token=292aaec4-406a-40c4-8cc9-3026e8cb7d3c";
+        String jsonUrl = "https://jsonblob.com/api/jsonBlob/a90254ad-3670-11e9-9056-e12fdc2cad95";
 
         RequestQueue requestQueue;
         // Instantiate the cache
@@ -310,20 +301,22 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
         requestQueue.start();
 
         // Formulate the request and handle the response
-        JsonArrayRequest arrayRequest = new JsonArrayRequest(
+        JsonArrayRequest jsonObjectRequest = new JsonArrayRequest(
+                Request.Method.GET,
                 jsonUrl,
+                null,
                 new Response.Listener<JSONArray>() {
                     @Override
-                    public void onResponse(JSONArray jsonArray) {
-                        if (jsonArray.length() > 0) {
-                            for (int i=0; i<jsonArray.length(); i++) {
+                    public void onResponse(JSONArray response) {
+                        if (response.length() > 0) {
+                            for (int i = 0; i < response.length(); i++) {
                                 try {
-                                    JSONObject foodObject = jsonArray.getJSONObject(i);
+                                    JSONObject foodObject = response.getJSONObject(i);
                                     mFoodList.add(new FoodItem(
-                                       foodObject.getString("name"),
+                                            foodObject.getString("name"),
                                             foodObject.getString("price"),
                                             foodObject.getInt("rating"),
-                                            foodObject.getString("img_url")
+                                            foodObject.getString("imageUrl")
                                     ));
                                     searchSuggestions[i] = foodObject.getString("name");
                                     mFoodAdapter.notifyDataSetChanged();
@@ -333,6 +326,7 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
                                 }
                             }
                         }
+
                     }
                 },
                 new Response.ErrorListener() {
@@ -343,7 +337,7 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
                 });
 
         // Add the request to the queue
-        requestQueue.add(arrayRequest);
+        requestQueue.add(jsonObjectRequest);
     }
 
     private int dpToPx() {
@@ -430,6 +424,6 @@ public class MainActivity extends AppCompatActivity implements FoodAdapter.CardC
     @Override
     public void onAddToCartBtnClick() {
         setCartNotification(FoodAdapter.count);
-        Toast.makeText(this, currentItem.getName()+" added to Cart", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, currentItem.getName() + " added to Cart", Toast.LENGTH_SHORT).show();
     }
 }
